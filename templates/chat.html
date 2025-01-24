@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 180px);
+        }
+        .message {
+            max-width: 80%;
+            margin: 8px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-4 text-center">Ollama Chat</h1>
+        
+        <!-- Chat messages container -->
+        <div id="chat-messages" class="bg-white rounded-lg shadow-md p-4 mb-4 chat-container overflow-y-auto">
+            <!-- Messages will be added here -->
+        </div>
+
+        <!-- Input form -->
+        <form id="chat-form" class="flex gap-2">
+            <input type="text" id="message-input" 
+                   class="flex-1 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                   placeholder="Type your message...">
+            <button type="submit" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">
+                Send
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        let messageHistory = [];
+        let currentMessageDiv = null;
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Disable input while processing
+            const submitButton = chatForm.querySelector('button');
+            messageInput.disabled = true;
+            submitButton.disabled = true;
+
+            // Add user message to UI and history
+            addMessage(message, true);
+            messageHistory.push({ role: "user", content: message });
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: messageHistory,
+                        model: "deepseek-r1:14b"
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                // Create a new message div for the assistant's response
+                currentMessageDiv = addMessage('', false);
+                let fullResponse = '';
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                fullResponse += data.content;
+                                currentMessageDiv.textContent = fullResponse;
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e);
+                            }
+                        }
+                    }
+                }
+
+                // Add the complete response to message history
+                messageHistory.push({ role: "assistant", content: fullResponse });
+
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Error: Could not get response from the server', false);
+            } finally {
+                // Re-enable input
+                messageInput.disabled = false;
+                submitButton.disabled = false;
+                messageInput.focus();
+            }
+        });
+    </script>
+</body>
+</html> 
