@@ -1,3 +1,30 @@
+import sys
+import subprocess
+import pkg_resources
+
+# Function to install required packages
+def install_requirements():
+    required = {
+        'fastapi',
+        'uvicorn',
+        'requests',
+        'markdown',
+        'python-multipart',
+        'jinja2'
+    }
+    
+    installed = {pkg.key for pkg in pkg_resources.working_set}
+    missing = required - installed
+    
+    if missing:
+        print("Installing missing packages:", missing)
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
+        print("All required packages installed successfully!")
+
+# Install requirements first
+install_requirements()
+
+# Now import all required packages
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -10,6 +37,8 @@ import uvicorn
 import logging
 import os
 import json
+import markdown
+import re
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -53,17 +82,23 @@ async def chat(request: Request):
     try:
         body = await request.json()
         messages = body.get("messages", [])
-        model = body.get("model", "deepseek-r1:14b")
+        model = body.get("model", "deepseek-r1:8b")
+
+        # Add system message to handle code blocks better
+        if not any(msg.get("role") == "system" for msg in messages):
+            messages.insert(0, {
+                "role": "system",
+                "content": "You are a helpful medical assistant. When providing code examples, please wrap them in triple backticks with the appropriate language identifier."
+            })
 
         ollama_request = {
             "model": model,
             "messages": messages,
-            "stream": True  # Enable streaming
+            "stream": True
         }
 
         logger.info(f"Sending to Ollama: {ollama_request}")
 
-        # Create streaming response
         async def generate():
             with requests.post(
                 "http://localhost:11434/api/chat",

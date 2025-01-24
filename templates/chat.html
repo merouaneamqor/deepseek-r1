@@ -3,49 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ollama Chat</title>
+    <title>DabaDoc Chat</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
         .chat-container {
             height: calc(100vh - 180px);
+            border: 1px solid #e2e8f0;
         }
         .message {
-            max-width: 80%;
-            margin: 8px;
-            padding: 12px;
-            border-radius: 8px;
+            max-width: 85%;
+            margin: 12px;
+            padding: 16px;
+            border-radius: 12px;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         .user-message {
-            background-color: #e3f2fd;
+            background-color: #00a3c4;
+            color: white;
             margin-left: auto;
         }
         .assistant-message {
-            background-color: #f5f5f5;
+            background-color: white;
+            border: 1px solid #e2e8f0;
             margin-right: auto;
+        }
+        pre {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #1e293b !important;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+        .copy-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            padding: 6px 12px;
+            background: #475569;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0.8;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .copy-button:hover {
+            opacity: 1;
+            background: #64748b;
+        }
+        .header {
+            background: linear-gradient(135deg, #00a3c4 0%, #0077b6 100%);
+            padding: 1rem;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .input-container {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background-color: #f1f5f9;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #64748b;
+        }
+        .dot {
+            width: 4px;
+            height: 4px;
+            background-color: #64748b;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
         }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-4 text-center">Ollama Chat</h1>
-        
-        <!-- Chat messages container -->
-        <div id="chat-messages" class="bg-white rounded-lg shadow-md p-4 mb-4 chat-container overflow-y-auto">
-            <!-- Messages will be added here -->
+<body>
+    <div class="header">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold">DabaDoc Chat</h1>
+                <span class="text-sm opacity-75">Powered by DeepSeek</span>
+            </div>
         </div>
-
-        <!-- Input form -->
-        <form id="chat-form" class="flex gap-2">
-            <input type="text" id="message-input" 
-                   class="flex-1 p-2 border rounded-lg focus:outline-none focus:border-blue-500"
-                   placeholder="Type your message...">
-            <button type="submit" 
-                    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none">
-                Send
-            </button>
-        </form>
     </div>
 
+    <div class="container mx-auto px-4 py-6">
+        <div id="chat-messages" class="bg-white rounded-xl shadow-sm p-4 mb-4 chat-container overflow-y-auto">
+            <!-- Welcome message -->
+            <div class="message assistant-message">
+                <p class="font-medium mb-2">👋 Welcome to DabaDoc Chat!</p>
+                <p>I'm here to help answer your questions. Feel free to ask anything!</p>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <form id="chat-form" class="flex gap-3">
+                <input type="text" id="message-input" 
+                       class="flex-1 p-3 border rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                       placeholder="Type your message here...">
+                <button type="submit" 
+                        class="bg-[#00a3c4] text-white px-6 py-3 rounded-lg hover:bg-[#0077b6] focus:outline-none transition-colors duration-200">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
     <script>
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
@@ -53,10 +143,56 @@
         let messageHistory = [];
         let currentMessageDiv = null;
 
+        function createTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = `
+                DabaDoc is typing
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            `;
+            return indicator;
+        }
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.backgroundColor = '#059669';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '#475569';
+                }, 2000);
+            });
+        }
+
+        function formatMessage(content, isUser) {
+            if (isUser) {
+                return content;
+            }
+            return marked.parse(content);
+        }
+
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-            messageDiv.textContent = content;
+            messageDiv.innerHTML = formatMessage(content, isUser);
+
+            if (!isUser) {
+                const codeBlocks = messageDiv.querySelectorAll('pre code');
+                codeBlocks.forEach((codeBlock) => {
+                    const pre = codeBlock.parentElement;
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.textContent = 'Copy code';
+                    copyButton.onclick = () => copyToClipboard(codeBlock.textContent, copyButton);
+                    pre.style.position = 'relative';
+                    pre.insertBefore(copyButton, codeBlock);
+                });
+                Prism.highlightAllUnder(messageDiv);
+            }
+
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return messageDiv;
@@ -67,17 +203,19 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
-            // Disable input while processing
             const submitButton = chatForm.querySelector('button');
             messageInput.disabled = true;
             submitButton.disabled = true;
 
-            // Add user message to UI and history
             addMessage(message, true);
             messageHistory.push({ role: "user", content: message });
             messageInput.value = '';
 
             try {
+                const typingIndicator = createTypingIndicator();
+                chatMessages.appendChild(typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
@@ -85,7 +223,7 @@
                     },
                     body: JSON.stringify({
                         messages: messageHistory,
-                        model: "deepseek-r1:14b"
+                        model: "deepseek-r1:8b"
                     })
                 });
 
@@ -93,7 +231,7 @@
                     throw new Error('Network response was not ok');
                 }
 
-                // Create a new message div for the assistant's response
+                typingIndicator.remove();
                 currentMessageDiv = addMessage('', false);
                 let fullResponse = '';
 
@@ -112,7 +250,8 @@
                             try {
                                 const data = JSON.parse(line.slice(6));
                                 fullResponse += data.content;
-                                currentMessageDiv.textContent = fullResponse;
+                                currentMessageDiv.innerHTML = formatMessage(fullResponse, false);
+                                Prism.highlightAllUnder(currentMessageDiv);
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
                             } catch (e) {
                                 console.error('Error parsing SSE data:', e);
@@ -121,14 +260,12 @@
                     }
                 }
 
-                // Add the complete response to message history
                 messageHistory.push({ role: "assistant", content: fullResponse });
 
             } catch (error) {
                 console.error('Error:', error);
-                addMessage('Error: Could not get response from the server', false);
+                addMessage('Sorry, I encountered an error while processing your request. Please try again.', false);
             } finally {
-                // Re-enable input
                 messageInput.disabled = false;
                 submitButton.disabled = false;
                 messageInput.focus();
